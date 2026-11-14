@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cyber Dash — Retro Neon Arcade</title>
+    <style>
+        /* =========================================
+           1. GLOBAL STYLES & RETRO ARCADE THEME
+           ========================================= */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: #090a14;
+            color: #e2e8f0;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            padding: 12px;
+        }
+
+        /* Header Bar */
+        header {
+            width: 100%;
+            max-width: 640px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 10px 16px;
+            background: rgba(18, 22, 41, 0.85);
+            border: 2px solid #00f3ff;
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.25);
+        }
+
+        .title-group h1 {
+            font-size: 1.4rem;
+            letter-spacing: 2px;
+            color: #00f3ff;
+            text-shadow: 0 0 8px rgba(0, 243, 255, 0.8);
+            text-transform: uppercase;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 16px;
+            font-size: 0.95rem;
+            font-weight: bold;
+        }
+
+        .stat-box span {
+            color: #ff007f;
+            text-shadow: 0 0 6px rgba(255, 0, 127, 0.7);
+        }
+
+        .stat-box.high span {
+            color: #facc15;
+            text-shadow: 0 0 6px rgba(250, 204, 21, 0.7);
+        }
+
+        /* Game Wrapper & Responsive Canvas */
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 640px;
+            aspect-ratio: 4 / 3;
+            max-height: 70vh;
+            background: #0d1021;
+            border: 3px solid #7000ff;
+            border-radius: 16px;
+            box-shadow: 0 0 25px rgba(112, 0, 255, 0.4), inset 0 0 20px rgba(0, 0, 0, 0.8);
+            overflow: hidden;
+            touch-action: none; /* Prevents scrolling while dragging on mobile */
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Overlay Screens (Start, Pause, Game Over) */
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(9, 10, 20, 0.84);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 24px;
+            transition: opacity 0.25s ease;
+            z-index: 10;
+        }
+
+        .overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .overlay h2 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .neon-cyan {
+            color: #00f3ff;
+            text-shadow: 0 0 12px #00f3ff;
+        }
+
+        .neon-pink {
+            color: #ff007f;
+            text-shadow: 0 0 12px #ff007f;
+        }
+
+        .overlay p {
+            max-width: 420px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: #cbd5e1;
+            margin-bottom: 20px;
+        }
+
+        .controls-hint {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 24px;
+            font-size: 0.85rem;
+        }
+
+        .badge {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(0, 243, 255, 0.4);
+            padding: 6px 12px;
+            border-radius: 8px;
+            color: #00f3ff;
+        }
+
+        /* Arcade Styled Buttons */
+        .btn-row {
+            display: flex;
+            gap: 14px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button.arcade-btn {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1rem;
+            font-weight: bold;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 12px 26px;
+            border-radius: 12px;
+            border: 2px solid #00f3ff;
+            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+            color: #ffffff;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 198, 255, 0.45);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+        }
+
+        button.arcade-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 22px rgba(0, 243, 255, 0.75);
+            filter: brightness(1.1);
+        }
+
+        button.arcade-btn:active {
+            transform: translateY(1px);
+        }
+
+        button.arcade-btn.secondary {
+            border-color: #ff007f;
+            background: linear-gradient(135deg, #ff007f 0%, #7000ff 100%);
+            box-shadow: 0 4px 15px rgba(255, 0, 127, 0.4);
+        }
+
+        button.arcade-btn.secondary:hover {
+            box-shadow: 0 6px 22px rgba(255, 0, 127, 0.75);
+        }
+
+        /* Live HUD Combo Indicator inside Canvas */
+        #hud-combo {
+            position: absolute;
+            top: 12px;
+            left: 14px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #facc15;
+            text-shadow: 0 0 8px rgba(250, 204, 21, 0.8);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        @media (max-width: 480px) {
+            .title-group h1 { font-size: 1.1rem; }
+            .stats-bar { font-size: 0.85rem; gap: 10px; }
+            .overlay h2 { font-size: 1.65rem; }
+            button.arcade-btn { padding: 10px 20px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Score & Title Header -->
+    <header>
+        <div class="title-group">
+            <h1>⚡ Cyber Dash</h1>
+        </div>
+        <div class="stats-bar">
+            <div class="stat-box">SCORE: <span id="score-display">0</span></div>
+            <div class="stat-box high">BEST: <span id="highscore-display">0</span></div>
+        </div>
+    </header>
+
+    <!-- Main Game Canvas Container -->
+    <div id="game-container">
+        <div id="hud-combo">COMBO x1</div>
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Start Screen Overlay -->
+        <div id="start-overlay" class="overlay">
+            <h2 class="neon-cyan">CYBER DASH</h2>
+            <p>Pilot your neon ship through the synth-grid! Dodge crimson plasma hazards and collect golden energy cores to boost your combo multiplier.</p>
+            <div class="controls-hint">
+                <span class="badge">⌨️ WASD / Arrows</span>
+                <span class="badge">🖱️ Mouse / Touch Drag</span>
+                <span class="badge">⏸️ P to Pause</span>
+            </div>
+            <button id="start-btn" class="arcade-btn">▶ Launch Game</button>
+        </div>
+
+        <!-- Pause Screen Overlay -->
+        <div id="pause-overlay" class="overlay hidden">
+            <h2 class="neon-cyan">SYSTEM PAUSED</h2>
+            <p>Take a breather. Ready to jump back into the cyber grid?</p>
+            <button id="resume-btn" class="arcade-btn">▶ Resume</button>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div id="gameover-overlay" class="overlay hidden">
+            <h2 class="neon-pink">SYSTEM CRASH</h2>
+            <p id="final-stats">Final Score: 0 | Best: 0</p>
+            <button id="restart-btn" class="arcade-btn secondary">↻ Play Again</button>
+        </div>
+    </div>
+
+    <!-- External Control Buttons Below Canvas -->
+    <div class="btn-row">
+        <button id="pause-toggle-btn" class="arcade-btn secondary" disabled>⏸ Pause</button>
+        <button id="quick-restart-btn" class="arcade-btn" disabled>↻ Restart</button>
+    </div>
+
+    <script>
+        /**
+         * ============================================================================
+         * CYBER DASH — Single-File HTML5 Canvas Arcade Game
+         * Pure Vanilla JS • Zero External Dependencies • Responsive 60FPS Loop
+         * ============================================================================
+         */
+
+        // --- 1. DOM ELEMENTS & CANVAS SETUP ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('game-container');
+
+        const scoreDisplay = document.getElementById('score-display');
+        const highScoreDisplay = document.getElementById('highscore-display');
+        const hudCombo = document.getElementById('hud-combo');
+        const finalStats = document.getElementById('final-stats');
+
+        const startOverlay = document.getElementById('start-overlay');
+        const pauseOverlay = document.getElementById('pause-overlay');
+        const gameoverOverlay = document.getElementById('gameover-overlay');
+
+        const startBtn = document.getElementById('start-btn');
+        const resumeBtn = document.getElementById('resume-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const pauseToggleBtn = document.getElementById('pause-toggle-btn');
+        const quickRestartBtn = document.getElementById('quick-restart-btn');
+
+        // --- 2. GAME STATE & CONFIGURATION ---
+        const STORAGE_KEY = 'cyber_dash_high_score_v1';
+        let highScore = parseInt(localStorage.getItem(STORAGE_KEY), 10) || 0;
+        highScoreDisplay.textContent = highScore;
+
+        let gameState = 'START'; // 'START' | 'PLAYING' | 'PAUSED' | 'GAMEOVER'
+        let score = 0;
+        let combo = 1;
+        let comboTimer = 0;
+        let gameSpeed = 1;
+        let frameCount = 0;
+        let lastTime = 0;
+        let screenShake = 0;
+        let gridOffset = 0;
+
+        // Entity Arrays
+        let hazards = [];
+        let cores = [];
+        let particles = [];
+        let floatingTexts = [];
+
+        // Player Object (Normalized coordinates mapped to canvas size)
+        const player = {
+            x: 0,
+            y: 0,
+            radius: 16,
+            speed: 420, // pixels per second
+            color: '#00f3ff',
+            trail: []
+        };
+
+        // Input Tracking
+        const keys = {};
+        let pointerActive = false;
+        let pointerTarget = { x: null, y: null };
+
+        // --- 3. RESPONSIVE CANVAS RESIZING ---
+        function resizeCanvas() {
+            const rect = container.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+
+            // Keep player inside bounds after resize
+            if (gameState === 'START') {
+                player.x = canvas.width / 2;
+                player.y = canvas.height * 0.8;
+            } else {
+                player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+                player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // --- 4. INPUT EVENT LISTENERS (KEYBOARD, MOUSE & TOUCH) ---
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+                e.preventDefault();
+            }
+            if (e.code === 'KeyP' || e.code === 'Escape') {
+                togglePause();
+            }
+            if (e.code === 'Enter' && (gameState === 'START' || gameState === 'GAMEOVER')) {
+                startGame();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        // Helper to translate mouse/touch coordinates to canvas space
+        function updatePointerPos(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            pointerTarget.x = clientX - rect.left;
+            pointerTarget.y = clientY - rect.top;
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (gameState !== 'PLAYING') return;
+            pointerActive = true;
+            updatePointerPos(e.clientX, e.clientY);
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!pointerActive || gameState !== 'PLAYING') return;
+            updatePointerPos(e.clientX, e.clientY);
+        });
+
+        window.addEventListener('mouseup', () => {
+            pointerActive = false;
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (gameState !== 'PLAYING') return;
+            e.preventDefault();
+            pointerActive = true;
+            const touch = e.touches[0];
+            updatePointerPos(touch.clientX, touch.clientY);
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (!pointerActive || gameState !== 'PLAYING') return;
+            e.preventDefault();
+            const touch = e.touches[0];
+            updatePointerPos(touch.clientX, touch.clientY);
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', () => {
+            pointerActive = false;
+        });
+
+        // --- 5. GAME LIFECYCLE CONTROLS ---
+        function startGame() {
+            score = 0;
+            combo = 1;
+            comboTimer = 0;
+            gameSpeed = 1;
+            frameCount = 0;
+            screenShake = 0;
+
+            hazards = [];
+            cores = [];
+            particles = [];
+            floatingTexts = [];
+
+            player.x = canvas.width / 2;
+            player.y = canvas.height * 0.82;
+            player.trail = [];
+
+            updateHUD();
+            gameState = 'PLAYING';
+
+            startOverlay.classList.add('hidden');
+            pauseOverlay.classList.add('hidden');
+            gameoverOverlay.classList.add('hidden');
+
+            pauseToggleBtn.disabled = false;
+            quickRestartBtn.disabled = false;
+            pauseToggleBtn.textContent = '⏸ Pause';
+
+            lastTime = performance.now();
+        }
+
+        function togglePause() {
+            if (gameState === 'PLAYING') {
+                gameState = 'PAUSED';
+                pauseOverlay.classList.remove('hidden');
+                pauseToggleBtn.textContent = '▶ Resume';
+            } else if (gameState === 'PAUSED') {
+                gameState = 'PLAYING';
+                pauseOverlay.classList.add('hidden');
+                pauseToggleBtn.textContent = '⏸ Pause';
+                lastTime = performance.now();
+            }
+        }
+
+        function triggerGameOver() {
+            gameState = 'GAMEOVER';
+            screenShake = 18;
+            spawnExplosion(player.x, player.y, '#00f3ff', 28);
+            spawnExplosion(player.x, player.y, '#ff007f', 22);
+
+            if (score > highScore) {
+                highScore = Math.floor(score);
+                localStorage.setItem(STORAGE_KEY, highScore);
+                highScoreDisplay.textContent = highScore;
+            }
+
+            finalStats.textContent = `Final Score: ${Math.floor(score)}  |  Best Score: ${highScore}`;
+            gameoverOverlay.classList.remove('hidden');
+            pauseToggleBtn.disabled = true;
+        }
+
+        startBtn.addEventListener('click', startGame);
+        resumeBtn.addEventListener('click', togglePause);
+        restartBtn.addEventListener('click', startGame);
+        pauseToggleBtn.addEventListener('click', togglePause);
+        quickRestartBtn.addEventListener('click', startGame);
+
+        // --- 6. SPAWNERS & PARTICLE EFFECTS ---
+        function spawnHazard() {
+            const size = 16 + Math.random() * 18;
+            const x = size + Math.random() * (canvas.width - size * 2);
+            const types = ['diamond', 'spike', 'hex'];
+            const type = types[Math.floor(Math.random() * types.length)];
+
+            hazards.push({
+                x: x,
+                y: -size * 2,
+                radius: size,
+                vx: (Math.random() - 0.5) * 90 * gameSpeed,
+                vy: (180 + Math.random() * 130) * gameSpeed,
+                rotation: Math.random() * Math.PI * 2,
+                rotSpeed: (Math.random() - 0.5) * 5,
+                type: type,
+                color: '#ff007f'
+            });
+        }
+
+        function spawnCore() {
+            const radius = 11;
+            const x = radius * 2 + Math.random() * (canvas.width - radius * 4);
+            cores.push({
+                x: x,
+                y: -radius * 2,
+                radius: radius,
+                vy: (160 + Math.random() * 70) * gameSpeed,
+                pulse: 0,
+                color: '#facc15'
+            });
+        }
+
+        function spawnExplosion(x, y, color, count = 14) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 60 + Math.random() * 220;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0,
+                    decay: 1.5 + Math.random() * 1.5,
+                    size: 2 + Math.random() * 4,
+                    color: color
+                });
+            }
+        }
+
+        function spawnFloatingText(x, y, text, color) {
+            floatingTexts.push({
+                x: x,
+                y: y,
+                text: text,
+                color: color,
+                life: 1.0
+            });
+        }
+
+        function updateHUD() {
+            scoreDisplay.textContent = Math.floor(score);
+            hudCombo.textContent = `COMBO x${combo}`;
+            hudCombo.style.transform = combo > 1 ? 'scale(1.08)' : 'scale(1)';
+        }
+
+        // --- 7. MAIN UPDATE LOOP (DELTA-TIME BASED) ---
+        function update(dt) {
+            // Always animate background grid and particles gently
+            gridOffset = (gridOffset + 120 * gameSpeed * dt) % 40;
+
+            // Update Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                p.life -= p.decay * dt;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+
+            // Update Floating Texts
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                const ft = floatingTexts[i];
+                ft.y -= 45 * dt;
+                ft.life -= 1.2 * dt;
+                if (ft.life <= 0) floatingTexts.splice(i, 1);
+            }
+
+            if (screenShake > 0) {
+                screenShake = Math.max(0, screenShake - 45 * dt);
+            }
+
+            if (gameState !== 'PLAYING') return;
+
+            frameCount++;
+
+            // Progressive difficulty scaling
+            gameSpeed = 1 + Math.min(1.6, score / 2500);
+            score += 15 * gameSpeed * dt;
+
+            // Combo decay timer
+            if (combo > 1) {
+                comboTimer -= dt;
+                if (comboTimer <= 0) {
+                    combo = 1;
+                }
+            }
+
+            // --- Player Movement ---
+            let moveX = 0;
+            let moveY = 0;
+
+            if (keys['ArrowLeft'] || keys['KeyA']) moveX -= 1;
+            if (keys['ArrowRight'] || keys['KeyD']) moveX += 1;
+            if (keys['ArrowUp'] || keys['KeyW']) moveY -= 1;
+            if (keys['ArrowDown'] || keys['KeyS']) moveY += 1;
+
+            if (moveX !== 0 || moveY !== 0) {
+                // Normalize diagonal keyboard movement
+                const len = Math.hypot(moveX, moveY);
+                player.x += (moveX / len) * player.speed * dt;
+                player.y += (moveY / len) * player.speed * dt;
+            } else if (pointerActive && pointerTarget.x !== null) {
+                // Smooth follow toward mouse/touch drag position
+                const dx = pointerTarget.x - player.x;
+                const dy = pointerTarget.y - player.y;
+                player.x += dx * Math.min(1, 16 * dt);
+                player.y += dy * Math.min(1, 16 * dt);
+            }
+
+            // Clamp player inside canvas boundaries
+            player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+            player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
+
+            // Record player neon trail
+            player.trail.push({ x: player.x, y: player.y });
+            if (player.trail.length > 12) player.trail.shift();
+
+            // --- Spawning Logic ---
+            const hazardInterval = Math.max(18, Math.floor(48 / gameSpeed));
+            if (frameCount % hazardInterval === 0) {
+                spawnHazard();
+            }
+            if (frameCount % 75 === 0) {
+                spawnCore();
+            }
+
+            // --- Update Hazards & Check Collisions ---
+            for (let i = hazards.length - 1; i >= 0; i--) {
+                const h = hazards[i];
+                h.x += h.vx * dt;
+                h.y += h.vy * dt;
+                h.rotation += h.rotSpeed * dt;
+
+                // Bounce horizontally off walls
+                if (h.x < h.radius || h.x > canvas.width - h.radius) {
+                    h.vx *= -1;
+                }
+
+                // Circle collision check (forgiving hitbox: 80% of visual radius)
+                const dist = Math.hypot(player.x - h.x, player.y - h.y);
+                if (dist < player.radius + h.radius * 0.78) {
+                    triggerGameOver();
+                    return;
+                }
+
+                // Remove off-screen hazards
+                if (h.y - h.radius > canvas.height + 40) {
+                    hazards.splice(i, 1);
+                }
+            }
+
+            // --- Update Energy Cores & Check Pickups ---
+            for (let i = cores.length - 1; i >= 0; i--) {
+                const c = cores[i];
+                c.y += c.vy * dt;
+                c.pulse += 6 * dt;
+
+                const dist = Math.hypot(player.x - c.x, player.y - c.y);
+                if (dist < player.radius + c.radius + 4) {
+                    const pointsEarned = 50 * combo;
+                    score += pointsEarned;
+                    combo = Math.min(10, combo + 1);
+                    comboTimer = 4.0; // 4 seconds to keep combo alive
+
+                    spawnExplosion(c.x, c.y, '#facc15', 14);
+                    spawnFloatingText(c.x, c.y, `+${pointsEarned}`, '#facc15');
+                    cores.splice(i, 1);
+                    continue;
+                }
+
+                if (c.y - c.radius > canvas.height + 30) {
+                    cores.splice(i, 1);
+                }
+            }
+
+            updateHUD();
+        }
+
+        // --- 8. RENDERING PIPELINE ---
+        function draw() {
+            ctx.save();
+
+            // Apply camera shake on crash
+            if (screenShake > 0) {
+                const sx = (Math.random() - 0.5) * screenShake;
+                const sy = (Math.random() - 0.5) * screenShake;
+                ctx.translate(sx, sy);
+            }
+
+            // Clear Background
+            ctx.fillStyle = '#0d1021';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Scrolling Retro Cyber Grid
+            ctx.strokeStyle = 'rgba(112, 0, 255, 0.22)';
+            ctx.lineWidth = 1;
+            const gridSize = 40;
+
+            for (let x = 0; x <= canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = gridOffset; y <= canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Draw Energy Cores
+            for (const c of cores) {
+                const glowRadius = c.radius + Math.sin(c.pulse) * 3;
+                ctx.save();
+                ctx.translate(c.x, c.y);
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = c.color;
+                ctx.fillStyle = c.color;
+
+                // Rotating Diamond Core
+                ctx.rotate(c.pulse * 0.4);
+                ctx.beginPath();
+                ctx.moveTo(0, -glowRadius);
+                ctx.lineTo(glowRadius, 0);
+                ctx.lineTo(0, glowRadius);
+                ctx.lineTo(-glowRadius, 0);
+                ctx.closePath();
+                ctx.fill();
+
+                // Bright white inner core
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(0, 0, c.radius * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // Draw Hazards
+            for (const h of hazards) {
+                ctx.save();
+                ctx.translate(h.x, h.y);
+                ctx.rotate(h.rotation);
+                ctx.shadowBlur = 14;
+                ctx.shadowColor = h.color;
+                ctx.strokeStyle = h.color;
+                ctx.fillStyle = 'rgba(255, 0, 127, 0.22)';
+                ctx.lineWidth = 2.5;
+
+                const sides = h.type === 'diamond' ? 4 : h.type === 'spike' ? 3 : 6;
+                ctx.beginPath();
+                for (let s = 0; s < sides; s++) {
+                    const angle = (s * Math.PI * 2) / sides;
+                    const px = Math.cos(angle) * h.radius;
+                    const py = Math.sin(angle) * h.radius;
+                    if (s === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // Draw Player Trail & Ship (if not crashed)
+            if (gameState !== 'GAMEOVER') {
+                // Trail
+                for (let i = 0; i < player.trail.length; i++) {
+                    const t = player.trail[i];
+                    const alpha = (i / player.trail.length) * 0.4;
+                    const size = player.radius * (i / player.trail.length) * 0.85;
+                    ctx.fillStyle = `rgba(0, 243, 255, ${alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(t.x, t.y, size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Player Sleek Delta Ship
+                ctx.save();
+                ctx.translate(player.x, player.y);
+                ctx.shadowBlur = 18;
+                ctx.shadowColor = player.color;
+                ctx.fillStyle = player.color;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+
+                ctx.beginPath();
+                ctx.moveTo(0, -player.radius - 4);
+                ctx.lineTo(player.radius, player.radius);
+                ctx.lineTo(0, player.radius * 0.55);
+                ctx.lineTo(-player.radius, player.radius);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // Draw Particles
+            for (const p of particles) {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, p.life);
+                ctx.fillStyle = p.color;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = p.color;
+                ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+                ctx.restore();
+            }
+
+            // Draw Floating Score Texts
+            for (const ft of floatingTexts) {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, ft.life);
+                ctx.font = 'bold 16px "Courier New", monospace';
+                ctx.fillStyle = ft.color;
+                ctx.textAlign = 'center';
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = ft.color;
+                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.restore();
+            }
+
+            ctx.restore();
+        }
+
+        // --- 9. REQUESTANIMATIONFRAME LOOP ---
+        function gameLoop(timestamp) {
+            const dt = Math.min(0.05, (timestamp - lastTime) / 1000 || 0);
+            lastTime = timestamp;
+
+            update(dt);
+            draw();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start loop on window load
+        window.onload = function () {
+            lastTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
